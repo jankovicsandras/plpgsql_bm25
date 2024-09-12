@@ -1,2 +1,97 @@
 # plpgsql_bm25
-BM25 search implemented in PL/pgSQL
+## BM25 search implemented in PL/pgSQL
+
+----
+### News
+ - Proof of concept works.
+ - PL/pgSQL BM25 search functions work in Postgres without any extensions / Rust
+ - BM25 index builder works in Python
+
+### Roadmap / TODO
+ - PL/pgSQL index builder (or other languages e.g. JavaScript)
+ - ```bm25topk()``` should use dynamic column names, not the fixed ```id```, ```full_description```
+ - implement other algorithms from rank_bm25, not just Okapi
+
+----
+### Contributions welcome!
+The author is not a Postgres / PL/pgSQL expert, gladly accepts optimizations or constructive criticism.
+
+----
+### Usage in a nutshell
+Python index building:
+```python
+# build BM25 index
+mybm25_index = mybm25okapi(tokenized_corpus)
+# export wsmap to CSV
+mybm25_index.exportwsmap( csvfilepath )
+# import wsmap to Postgres from CSV
+msq('SELECT bm25importwsmap(\''+tablename_bm25wsmap+'\',\''+csvfilepath+'\');')
+```
+Postgres search:
+```python
+msq('SELECT bm25topk.id, bm25topk.score, bm25topk.doc FROM bm25topk(\''+tablename+'\', \''+tablename_bm25wsmap+'\',\''+json.dumps(tokenizedquestion).replace("'","\'\'")+'\', 10);')
+```
+
+----
+### What is this?
+ - https://en.wikipedia.org/wiki/Okapi_BM25
+ - https://en.wikipedia.org/wiki/PL/pgSQL
+ - https://github.com/dorianbrown/rank_bm25
+ - TLDR:
+    - BM25Okapi is a popular search algorithm.
+    - Index building: Initially, there's a list of texts or documents called the corpus. Each document will be split to words (or tokens) with the tokenization function (the simplest is split on whitespace characters). The algorithm then builds a word-score-map ```wsmap```, where every word in the corpus is scored for every document based on their frequencies, ca. how special a word is in the corpus and how frequent in the current document.
+    - Search: the question text (or query string) will be tokenized, then the search function looks up the words from ```wsmap``` and sums the scores for each document; the result is a list of scores, one for each document. The highest scoring document is the best match. The search function sorts the scores-documentIDs in descending order.
+    - The ```wsmap``` is stored in a simple dict in Python ``` { 'word1': [doc1score, doc2score, ... ], 'word2':[doc1score, doc2score, ... ], ... }``` and a simple table in Postgres ```|word TEXT|vl JSON|``` where ```vl == [doc1score, doc2score, ... ]```.
+    - Adding a new document to the corpus or changing one requires rebuilding the whole BM25 index (```wsmap```), because of how the algorithm works.
+
+----
+### Repo contents
+ - ```plpgsql_bm25_dev.ipynb``` : Jupyter notebook where I develop this.
+ - ```mybm25okapi.py``` : Python BM25 index builder, see also https://github.com/dorianbrown/rank_bm25
+ - ```plpgsql_bm25.sql``` : PL/pgSQL functions for search
+
+----
+### Why?
+Postgres has already Full Text Search and there are several extensions that implement BM25. But Full Text Search is not the same as BM25. The BM25 extensions are written in Rust, which might not be available / practical, especially in hosted environments. See Alternatives section for more info.
+
+----
+### Alternatives:
+
+ - Postgres Full Text Search
+   - https://www.postgresql.org/docs/current/textsearch.html
+   - https://postgresml.org/blog/postgres-full-text-search-is-awesome
+
+
+ - Rust based BM25
+   - https://github.com/paradedb/paradedb/tree/dev/pg_search#overview
+   - https://github.com/tensorchord/pg_bestmatch.rs
+
+
+ - Postgres similarity of text using trigram matching
+   - https://www.postgresql.org/docs/current/pgtrgm.html
+
+   - NOTE: this is useful for fuzzy string matching, like spelling correction, but not query->document search solution itself.
+The differing document and query text lengths will result very small relative trigram frequencies and incorrect/missing matching.
+
+----
+### Special thanks to: dorianbrown, Myon
+
+
+----
+### LICENSE
+
+As https://github.com/dorianbrown/rank_bm25 has Apache-2.0 license, the derived mybm25okapi class should probably have Apache-2.0 license. The test datasets and other external code might have different licenses, please check them.
+
+My code:
+
+The Unlicense / PUBLIC DOMAIN
+
+This is free and unencumbered software released into the public domain.
+
+Anyone is free to copy, modify, publish, use, compile, sell, or distribute this software, either in source code form or as a compiled binary, for any purpose, commercial or non-commercial, and by any means.
+
+In jurisdictions that recognize copyright laws, the author or authors of this software dedicate any and all copyright interest in the software to the public domain. We make this dedication for the benefit of the public at large and to the detriment of our heirs and successors. We intend this dedication to be an overt act of relinquishment in perpetuity of all present and future rights to this software under copyright law.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+For more information, please refer to http://unlicense.org
