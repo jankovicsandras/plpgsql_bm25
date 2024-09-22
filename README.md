@@ -1,35 +1,27 @@
+README.md
+
 # plpgsql_bm25
 ## BM25 search implemented in PL/pgSQL
 
 ----
 ### News
- - Proof of concept works.
  - PL/pgSQL BM25 search functions work in Postgres without any extensions / Rust
- - BM25 index builder works in Python
 
 ### Roadmap / TODO
- - PL/pgSQL index builder (or other languages e.g. JavaScript)
- - ```bm25topk()``` should use dynamic column names, not the fixed ```id```, ```full_description```
  - implement other algorithms from rank_bm25, not just Okapi
+ - tokenization options, stopwords
+ - bm25scoressum() temp table?
 
 ----
 ### Contributions welcome!
 The author is not a Postgres / PL/pgSQL expert, gladly accepts optimizations or constructive criticism.
 
 ----
-### Usage in a nutshell
-Python index building:
-```python
-# build BM25 index
-mybm25_index = mybm25okapi(tokenized_corpus)
-# export wsmap to CSV
-mybm25_index.exportwsmap( csvfilepath )
-# import wsmap to Postgres from CSV
-msq('SELECT bm25importwsmap(\''+tablename_bm25wsmap+'\',\''+csvfilepath+'\');')
-```
-Postgres search:
-```python
-msq('SELECT bm25topk.id, bm25topk.score, bm25topk.doc FROM bm25topk(\''+tablename+'\', \''+tablename_bm25wsmap+'\',\''+json.dumps(tokenizedquestion).replace("'","\'\'")+'\', 10);')
+###   Example usage:
+
+```plpgsql
+  SELECT bm25createindex( tablename, columnname );  /* tablename and columnname are TEXT types */
+  SELECT * FROM bm25topk( tablename, columnname, question, k ); /* question is TEXT, k is INTGEGER */
 ```
 
 ----
@@ -41,14 +33,15 @@ msq('SELECT bm25topk.id, bm25topk.score, bm25topk.doc FROM bm25topk(\''+tablenam
     - BM25Okapi is a popular search algorithm.
     - Index building: Initially, there's a list of texts or documents called the corpus. Each document will be split to words (or tokens) with the tokenization function (the simplest is split on whitespace characters). The algorithm then builds a word-score-map ```wsmap```, where every word in the corpus is scored for every document based on their frequencies, ca. how special a word is in the corpus and how frequent in the current document.
     - Search: the question text (or query string) will be tokenized, then the search function looks up the words from ```wsmap``` and sums the scores for each document; the result is a list of scores, one for each document. The highest scoring document is the best match. The search function sorts the scores-documentIDs in descending order.
-    - The ```wsmap``` is stored in a simple dict in Python ``` { 'word1': [doc1score, doc2score, ... ], 'word2':[doc1score, doc2score, ... ], ... }``` and a simple table in Postgres ```|word TEXT|vl JSON|``` where ```vl == [doc1score, doc2score, ... ]```.
     - Adding a new document to the corpus or changing one requires rebuilding the whole BM25 index (```wsmap```), because of how the algorithm works.
 
 ----
 ### Repo contents
+ - ```plpgsql_bm25.sql``` : PL/pgSQL functions for BM25 search
+ - ```plpgsql_bm25_test.ipynb``` : Latest Jupyter notebook with comparative testing of plpgsql_bm25.sql, rank_bm25 and mybm25okapi.py.
  - ```plpgsql_bm25_dev.ipynb``` : Jupyter notebook where I develop this.
+ - ```plpgsql_bm25_old_dev.ipynb``` : old
  - ```mybm25okapi.py``` : Python BM25 index builder, see also https://github.com/dorianbrown/rank_bm25
- - ```plpgsql_bm25.sql``` : PL/pgSQL functions for search
 
 ----
 ### Why?
@@ -74,8 +67,7 @@ Postgres has already Full Text Search and there are several extensions that impl
 The differing document and query text lengths will result very small relative trigram frequencies and incorrect/missing matching.
 
 ----
-### Special thanks to: dorianbrown, Myon
-
+### Special thanks to: dorianbrown, Myon, depesz, sobel, ilmari, xiaomiao and others from #postgresql
 
 ----
 ### LICENSE
