@@ -7,7 +7,7 @@
 
   Example usage:
   SELECT bm25createindex( tablename, columnname );  /* tablename and columnname are TEXT types */
-  SELECT * FROM bm25topk( tablename, columnname, question, k ); /* question is TEXT, k is INTGEGER */
+  SELECT * FROM bm25topk( tablename, columnname, question, k ); /* question is TEXT, k is INTEGER */
 
   Please note: bm25createindex will (re)create new tables <tablename>_bm25i_docs and <tablename>_bm25i_words, 
   document results will come from <tablename>_bm25i_docs, not the original <tablename>. The algorithm can't
