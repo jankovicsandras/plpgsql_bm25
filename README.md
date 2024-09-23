@@ -10,6 +10,7 @@ README.md
 ### Roadmap / TODO
  - implement other algorithms from rank_bm25, not just Okapi
  - tokenization options, stopwords
+ - test performance vs. Rust extension solutions (pg_search, pg_bestmatch.rs)
  - bm25scoressum() temp table?
 
 ----
