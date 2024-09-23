@@ -22,7 +22,7 @@ The author is not a Postgres / PL/pgSQL expert, gladly accepts optimizations or 
 
 ```plpgsql
   SELECT bm25createindex( tablename, columnname );  /* tablename and columnname are TEXT types */
-  SELECT * FROM bm25topk( tablename, columnname, question, k ); /* question is TEXT, k is INTGEGER */
+  SELECT * FROM bm25topk( tablename, columnname, question, k ); /* question is TEXT, k is INTEGER */
 ```
 
 ----
