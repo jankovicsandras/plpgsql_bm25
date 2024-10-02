@@ -19,7 +19,12 @@ The author is not a Postgres / PL/pgSQL expert, gladly accepts optimizations or 
 
 ----
 ###   Example usage:
-
+1. download and execute [plpgsql_bm25.sql](https://raw.githubusercontent.com/jankovicsandras/plpgsql_bm25/refs/heads/main/plpgsql_bm25.sql) to load the functions, e.g.
+   ```bash
+   wget https://raw.githubusercontent.com/jankovicsandras/plpgsql_bm25/refs/heads/main/plpgsql_bm25.sql
+   psql -f plpgsql_bm25.sql
+   ```
+2. 
 ```plpgsql
   SELECT bm25createindex( tablename, columnname );  /* tablename and columnname are TEXT types */
   SELECT * FROM bm25topk( tablename, columnname, question, k ); /* question is TEXT, k is INTEGER */
@@ -38,8 +43,11 @@ The author is not a Postgres / PL/pgSQL expert, gladly accepts optimizations or 
 
 ----
 ### Repo contents
+#### required
  - ```plpgsql_bm25.sql``` : PL/pgSQL functions for BM25 search
- - ```plpgsql_bm25_test.ipynb``` : Latest Jupyter notebook with comparative testing of plpgsql_bm25.sql, rank_bm25 and mybm25okapi.py.
+#### development and test
+ - ```plpgsql_bm25_comparison_with_paradedb_pg_search.ipynb``` : Jupyter notebook with comparative testing of plpgsql_bm25.sql, ParadeDB pg_search, rank_bm25 and mybm25okapi.py
+ - ```plpgsql_bm25_test.ipynb``` : Jupyter notebook with comparative testing of plpgsql_bm25.sql, rank_bm25 and mybm25okapi.py.
  - ```plpgsql_bm25_dev.ipynb``` : Jupyter notebook where I develop this.
  - ```plpgsql_bm25_old_dev.ipynb``` : old
  - ```mybm25okapi.py``` : Python BM25 index builder, see also https://github.com/dorianbrown/rank_bm25
