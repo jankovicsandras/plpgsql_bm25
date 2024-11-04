@@ -76,6 +76,7 @@ bm25simpletokenize(txt TEXT) RETURNS TEXT[]
  - https://en.wikipedia.org/wiki/Okapi_BM25
  - https://en.wikipedia.org/wiki/PL/pgSQL
  - https://github.com/dorianbrown/rank_bm25
+ - https://github.com/jankovicsandras/bm25opt
  - TLDR:
     - BM25Okapi is a popular search algorithm.
     - Index building: Initially, there's a list of texts or documents called the corpus. Each document will be split to words (or tokens) with the tokenization function (the simplest is split on whitespace characters). The algorithm then builds a word-score-map ```wsmap```, where every word in the corpus is scored for every document based on their frequencies, ca. how special a word is in the corpus and how frequent in the current document.
