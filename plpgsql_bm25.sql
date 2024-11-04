@@ -269,14 +269,14 @@ $$;
 
 /* bm25scoressum(): sums the score rows to one array with the document scores ; TODO: instead of xdocstname maybe with temp table, race condition here? */
 DROP FUNCTION IF EXISTS bm25scoressum;
-CREATE OR REPLACE FUNCTION bm25scoressum(tablename TEXT, tokenizedquery TEXT) RETURNS SETOF double precision[]
+CREATE OR REPLACE FUNCTION bm25scoressum(tablename TEXT, mquery TEXT) RETURNS SETOF double precision[]
 LANGUAGE plpgsql
 AS $$
 DECLARE
   xdocstname TEXT := tablename || '_bm25i_temp';
 BEGIN
   EXECUTE FORMAT( 'DROP TABLE IF EXISTS %s;', xdocstname );
-  EXECUTE FORMAT( 'CREATE TABLE %s AS SELECT bm25scorerows(%s, %s);', xdocstname, quote_literal(tablename), quote_literal(tokenizedquery) );
+  EXECUTE FORMAT( 'CREATE TABLE %s AS SELECT bm25scorerows(%s, %s);', xdocstname, quote_literal(tablename), quote_literal(mquery) );
   RETURN QUERY EXECUTE FORMAT( 'SELECT ARRAY_AGG(sum ORDER BY ord) FROM (SELECT ord, SUM(int) FROM %s, unnest(bm25scorerows) WITH ORDINALITY u(int, ord) GROUP BY ord);', xdocstname );
 END;
 $$;
@@ -284,35 +284,35 @@ $$;
 
 /* bm25scunnest(): unnests the score array */
 DROP FUNCTION IF EXISTS bm25scunnest;
-CREATE OR REPLACE FUNCTION bm25scunnest(tablename TEXT, tokenizedquery TEXT) RETURNS TABLE(score double precision)
+CREATE OR REPLACE FUNCTION bm25scunnest(tablename TEXT, mquery TEXT) RETURNS TABLE(score double precision)
 LANGUAGE plpgsql
 AS $$
 BEGIN
-  RETURN QUERY SELECT unnest(bm25scoressum(tablename,tokenizedquery));
+  RETURN QUERY SELECT unnest(bm25scoressum(tablename,mquery));
 END;
 $$;
 
 
 /* bm25isc(): returns the index and score of the documents; index starts with 1 */
 DROP FUNCTION IF EXISTS bm25isc;
-CREATE OR REPLACE FUNCTION bm25isc(tablename TEXT, tokenizedquery TEXT) RETURNS TABLE(id BIGINT, score double precision)
+CREATE OR REPLACE FUNCTION bm25isc(tablename TEXT, mquery TEXT) RETURNS TABLE(id BIGINT, score double precision)
 LANGUAGE plpgsql
 AS $$
 BEGIN
-  RETURN QUERY SELECT row_number() OVER () AS id, bm25scunnest FROM bm25scunnest(tablename,tokenizedquery) ;
+  RETURN QUERY SELECT row_number() OVER () AS id, bm25scunnest FROM bm25scunnest(tablename,mquery) ;
 END;
 $$;
 
 
 /* bm25topk(): returns the index, score and document sorted and limited |  TABLE(id INT, id2 BIGINT, score double precision, doc TEXT) */
 DROP FUNCTION IF EXISTS bm25topk;
-CREATE OR REPLACE FUNCTION bm25topk(tablename TEXT, columnname TEXT, tokenizedquery TEXT, k INT, algo TEXT DEFAULT '') RETURNS TABLE(id INTEGER, score double precision, doc TEXT)
+CREATE OR REPLACE FUNCTION bm25topk(tablename TEXT, columnname TEXT, mquery TEXT, k INT, algo TEXT DEFAULT '') RETURNS TABLE(id INTEGER, score double precision, doc TEXT)
 LANGUAGE plpgsql
 AS $$
 DECLARE
   docstname TEXT := tablename || '_' ||  columnname || '_bm25i_docs' || algo;
   wordstname TEXT := tablename || '_' ||  columnname || '_bm25i_words' || algo;
 BEGIN
-  RETURN QUERY EXECUTE FORMAT( 'SELECT t1.id, t2.score, t1.%s AS doc FROM (SELECT id, doc AS %s FROM %s) t1 INNER JOIN ( SELECT id, score FROM bm25isc(%s,%s) ) t2 ON ( t1.id = t2.id ) ORDER BY t2.score DESC LIMIT %s;', columnname, columnname, docstname, quote_literal(wordstname), quote_literal(tokenizedquery), k );
+  RETURN QUERY EXECUTE FORMAT( 'SELECT t1.id, t2.score, t1.%s AS doc FROM (SELECT id, doc AS %s FROM %s) t1 INNER JOIN ( SELECT id, score FROM bm25isc(%s,%s) ) t2 ON ( t1.id = t2.id ) ORDER BY t2.score DESC LIMIT %s;', columnname, columnname, docstname, quote_literal(wordstname), quote_literal(mquery), k );
 END;
 $$;
