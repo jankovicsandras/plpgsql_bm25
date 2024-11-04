@@ -5,12 +5,11 @@ README.md
 
 ----
 ### News
- - PL/pgSQL BM25 search functions work in Postgres without any extensions / Rust
+ - all three BM25 algorithms from rank_bm25 are implemented ( BM25Okapi, BM25L, BM25Plus )
+ - an optimized Python implementation is available, see [BM25opt](https://github.com/jankovicsandras/bm25opt), which runs 30-40 x faster than rank_bm25
 
 ### Roadmap / TODO
- - implement other algorithms from rank_bm25, not just Okapi
  - tokenization options, stopwords
- - test performance vs. Rust extension solutions (pg_search, pg_bestmatch.rs)
  - bm25scoressum() temp table?
 
 ----
@@ -24,11 +23,53 @@ The author is not a Postgres / PL/pgSQL expert, gladly accepts optimizations or 
    wget https://raw.githubusercontent.com/jankovicsandras/plpgsql_bm25/refs/heads/main/plpgsql_bm25.sql
    psql -f plpgsql_bm25.sql
    ```
-2. 
+3. then
+   ```plpgsql
+     SELECT bm25createindex( tablename, columnname );  /* tablename and columnname are TEXT types */
+     SELECT * FROM bm25topk( tablename, columnname, question, k ); /* question is TEXT, k is INTEGER */
+   ```
+
+BM25Okapi is the default algoritm. If you would like to use BM25L or BM25Plus, then the ```algo``` parameter must be specified, ```'l'``` is BM25L and ```'plus'``` is BM25Plus, e.g. :
 ```plpgsql
-  SELECT bm25createindex( tablename, columnname );  /* tablename and columnname are TEXT types */
-  SELECT * FROM bm25topk( tablename, columnname, question, k ); /* question is TEXT, k is INTEGER */
+  SELECT bm25createindex( tablename, columnname, algo=>'plus' );  /* tablename and columnname are TEXT types */
+  SELECT * FROM bm25topk( tablename, columnname, question, k, algo=>'plus' ); /* question is TEXT, k is INTEGER */
 ```
+
+Calling these from Python with a simple psycopg2 helper:
+```Python
+# it is assumed that 'mytable' exists in the Postgres DB and has a 'mycolumn' (type TEXT)
+tablename = 'mytable'
+columnname = 'mycolumn'
+p_algo = 'l' # BM25L algoritm
+k = 5 # top k results
+q = 'this is my question'
+msq( 'SELECT bm25createindex( \''+tablename+'\', \''+columnname+'\', algo=>\''+p_algo+'\' );' )
+msq( 'SELECT * FROM bm25topk( \''+tablename+'\', \''+columnname+'\', \''+q.replace("'","\'\'")+'\', '+str(k)+', algo=>\''+p_algo+'\' );' )
+```
+----
+### API
+```plpgsql
+bm25createindex(tablename TEXT, columnname TEXT, algo TEXT DEFAULT '') RETURNS VOID
+```
+ - This creates the BM25 index by creating these new tables:
+   ```plpgsql
+     docstname TEXT := tablename || '_' ||  columnname || '_bm25i_docs' || algo;
+     wordstname TEXT := tablename || '_' ||  columnname || '_bm25i_words' || algo;
+   ```
+ - The index creation is a costy operation, but required after every change in the corpus (the original texts in tablename->columnname).
+ - ```algo``` values: ```''``` is BM25Okapi (default),  ```'l'``` is BM25L,   ```'plus'``` is BM25Plus. 
+
+
+```plpgsql
+bm25topk(tablename TEXT, columnname TEXT, mquery TEXT, k INT, algo TEXT DEFAULT '') RETURNS TABLE(id INTEGER, score double precision, doc TEXT)
+```
+ - This is the search function, which returns the top ```k``` documents and their scores that are most similar to ```mquery``` (the question).
+ - WARNING: the ```id``` column in the result table must not be used, instead the ```doc``` must be matched with (tablename->columnname) in the original table to get the record / ordering. The ```id``` column and the ordering of ```doc```s in the result table is not guaranteed to be the same as the ordering as the ordering of records in the original table.
+
+```plpgsql
+bm25simpletokenize(txt TEXT) RETURNS TEXT[]
+```
+ - The default tokenizer function. If you need another / custom tokenizer, then you need to overwrite this (DROP FUNCTION... CREATE OR REPLACE FUNCTION...).
 
 ----
 ### What is this?
@@ -46,11 +87,8 @@ The author is not a Postgres / PL/pgSQL expert, gladly accepts optimizations or 
 #### required
  - ```plpgsql_bm25.sql``` : PL/pgSQL functions for BM25 search
 #### development and test
+ - ```plpgsql_bm25_dev_20241103.ipynb``` : Jupyter notebook where I develop this.
  - ```plpgsql_bm25_comparison_with_paradedb_pg_search.ipynb``` : Jupyter notebook with comparative testing of plpgsql_bm25.sql, ParadeDB pg_search, rank_bm25 and mybm25okapi.py
- - ```plpgsql_bm25_test.ipynb``` : Jupyter notebook with comparative testing of plpgsql_bm25.sql, rank_bm25 and mybm25okapi.py.
- - ```plpgsql_bm25_dev.ipynb``` : Jupyter notebook where I develop this.
- - ```plpgsql_bm25_old_dev.ipynb``` : old
- - ```mybm25okapi.py``` : Python BM25 index builder, see also https://github.com/dorianbrown/rank_bm25
 
 ----
 ### Why?
@@ -80,10 +118,6 @@ The differing document and query text lengths will result very small relative tr
 
 ----
 ### LICENSE
-
-As https://github.com/dorianbrown/rank_bm25 has Apache-2.0 license, the derived mybm25okapi class should probably have Apache-2.0 license. The test datasets and other external code might have different licenses, please check them.
-
-My code:
 
 The Unlicense / PUBLIC DOMAIN
 
