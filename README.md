@@ -89,7 +89,7 @@ bm25simpletokenize(txt TEXT) RETURNS TEXT[]
  - ```plpgsql_bm25.sql``` : PL/pgSQL functions for BM25 search
 #### development and test
  - ```plpgsql_bm25_dev_20241103.ipynb``` : Jupyter notebook where I develop this.
- - ```plpgsql_bm25_comparison_with_paradedb_pg_search.ipynb``` : Jupyter notebook with comparative testing of plpgsql_bm25.sql, ParadeDB pg_search, rank_bm25 and mybm25okapi.py
+ - ```plpgsql_bm25_comparison_with_paradedb_pg_search.ipynb``` : Jupyter notebook with comparative testing of plpgsql_bm25.sql, ParadeDB pg_search, rank_bm25 and [BM25opt](https://github.com/jankovicsandras/bm25opt)
 
 ----
 ### Why?
