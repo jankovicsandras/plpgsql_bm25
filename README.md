@@ -5,6 +5,7 @@ README.md
 
 ----
 ### News
+ - hybrid search with pgvector and Reciprocal Rank Fusion, see [plpgsql_bm25rrf.sql](https://github.com/jankovicsandras/plpgsql_bm25/blob/main/plpgsql_bm25rrf.sql), example: [Postgres_hybrid_search_RRF.ipynb](https://github.com/jankovicsandras/plpgsql_bm25/blob/main/Postgres_hybrid_search_RRF.ipynb)
  - all three BM25 algorithms from rank_bm25 are implemented ( BM25Okapi, BM25L, BM25Plus )
  - an optimized Python implementation is available, see [BM25opt](https://github.com/jankovicsandras/bm25opt), which runs 30-40 x faster than rank_bm25
 
