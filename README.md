@@ -12,7 +12,7 @@ README.md
 ### Roadmap / TODO
  - tokenization options, stopwords
  - bm25scoressum() temp table?
-
+ - implement other algorithms, e.g. [BMX](https://github.com/mixedbread-ai/baguetter/blob/main/baguetter/indices/sparse/models/bmx/index.py) ?
 ----
 ### Contributions welcome!
 The author is not a Postgres / PL/pgSQL expert, gladly accepts optimizations or constructive criticism.
