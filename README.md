@@ -5,17 +5,18 @@ README.md
 
 ----
 ### News
+ - many BM25 algorithms are implemented, some rank_bm25 compatible and some extra [( '' (Okapi), 'l', 'plus', 'robertson', 'luceneaccurate', 'atire', 'bm25l', 'bm25plus' )](https://github.com/dorianbrown/rank_bm25/issues/43#issuecomment-2657715463)
+ - stopword filter in many languages (en, fr, es, pt, it, de, nl, sv, no, nn, da, ru, fi, hu, ga, id)
+
+### Other Features
  - hybrid search with pgvector and Reciprocal Rank Fusion, see [plpgsql_bm25rrf.sql](https://github.com/jankovicsandras/plpgsql_bm25/blob/main/plpgsql_bm25rrf.sql), example: [Postgres_hybrid_search_RRF.ipynb](https://github.com/jankovicsandras/plpgsql_bm25/blob/main/Postgres_hybrid_search_RRF.ipynb)
- - all three BM25 algorithms from rank_bm25 are implemented ( BM25Okapi, BM25L, BM25Plus )
  - an optimized Python implementation is available, see [BM25opt](https://github.com/jankovicsandras/bm25opt), which runs 30-40 x faster than rank_bm25
 
 ### Roadmap / TODO
- - tokenization options, stopwords
+ - better documentation
+ - tokenization options?
  - bm25scoressum() temp table?
  - implement other algorithms, e.g. [BMX](https://github.com/mixedbread-ai/baguetter/blob/main/baguetter/indices/sparse/models/bmx/index.py) ?
-----
-### Contributions welcome!
-The author is not a Postgres / PL/pgSQL expert, gladly accepts optimizations or constructive criticism.
 
 ----
 ###   Example usage:
@@ -24,33 +25,42 @@ The author is not a Postgres / PL/pgSQL expert, gladly accepts optimizations or 
    wget https://raw.githubusercontent.com/jankovicsandras/plpgsql_bm25/refs/heads/main/plpgsql_bm25.sql
    psql -f plpgsql_bm25.sql
    ```
-3. then
+2. then
    ```plpgsql
      SELECT bm25createindex( tablename, columnname );  /* tablename and columnname are TEXT types */
      SELECT * FROM bm25topk( tablename, columnname, question, k ); /* question is TEXT, k is INTEGER */
    ```
 
-BM25Okapi is the default algoritm. If you would like to use BM25L or BM25Plus, then the ```algo``` parameter must be specified, ```'l'``` is BM25L and ```'plus'``` is BM25Plus, e.g. :
+BM25Okapi is the default algoritm. The ```algo``` parameter can select the following algorithms: ```'', 'l', 'plus', 'robertson', 'luceneaccurate', 'atire', 'bm25l', 'bm25plus'``` :
 ```plpgsql
-  SELECT bm25createindex( tablename, columnname, algo=>'plus' );  /* tablename and columnname are TEXT types */
-  SELECT * FROM bm25topk( tablename, columnname, question, k, algo=>'plus' ); /* question is TEXT, k is INTEGER */
+  SELECT bm25createindex( tablename, columnname, algo=>'luceneaccurate' );  /* tablename and columnname are TEXT types */
+  SELECT * FROM bm25topk( tablename, columnname, question, k, algo=>'luceneaccurate' ); /* question is TEXT, k is INTEGER */
 ```
+
+Stopword filtering. The following [language tags](https://en.wikipedia.org/wiki/IETF_language_tag) can be selected: ```'' (no stopword filtering), 'en', 'fr', 'es', 'pt', 'it', 'de', 'nl', 'sv', 'no', 'nn', 'da', 'ru', 'fi', 'hu', 'ga', 'id'```
+```plpgsql
+  SELECT bm25createindex( tablename, columnname, algo=>'plus', stopwordslanguage=>'hu' );  /* tablename and columnname are TEXT types */
+  SELECT * FROM bm25topk( tablename, columnname, question, k, algo=>'plus', stopwordslanguage=>'hu' ); /* question is TEXT, k is INTEGER, algo is TEXT, stopwordslanguage is TEXT */
+```
+
+Empirical results show that ```algo=>'luceneaccurate'``` and active stopword filtering (e.g. ```stopwordslanguage=>'en'```) usually lead to better results.
 
 Calling these from Python with a simple psycopg2 helper:
 ```Python
 # it is assumed that 'mytable' exists in the Postgres DB and has a 'mycolumn' (type TEXT)
 tablename = 'mytable'
 columnname = 'mycolumn'
-p_algo = 'l' # BM25L algoritm
+p_algo = 'luceneaccurate' # BM25L algoritm
+stopwords_lang = 'en'
 k = 5 # top k results
 q = 'this is my question'
-msq( 'SELECT bm25createindex( \''+tablename+'\', \''+columnname+'\', algo=>\''+p_algo+'\' );' )
-msq( 'SELECT * FROM bm25topk( \''+tablename+'\', \''+columnname+'\', \''+q.replace("'","\'\'")+'\', '+str(k)+', algo=>\''+p_algo+'\' );' )
+msq( 'SELECT bm25createindex( \''+tablename+'\', \''+columnname+'\', algo=>\''+p_algo+'\', stopwordslanguage=>\''+ stopwords_lang +'\' );' )
+msq( 'SELECT * FROM bm25topk( \''+ tablename +'\', \''+ columnname +'\', \''+ q.replace("'","\'\'") +'\', '+ str(k) +', algo=>\''+ p_algo +'\', stopwordslanguage=>\''+ stopwords_lang +'\' );' )
 ```
 ----
 ### API
 ```plpgsql
-bm25createindex(tablename TEXT, columnname TEXT, algo TEXT DEFAULT '') RETURNS VOID
+bm25createindex(tablename TEXT, columnname TEXT, algo TEXT DEFAULT '', stopwordslanguage TEXT DEFAULT '') RETURNS VOID
 ```
  - This creates the BM25 index by creating these new tables:
    ```plpgsql
@@ -58,19 +68,27 @@ bm25createindex(tablename TEXT, columnname TEXT, algo TEXT DEFAULT '') RETURNS V
      wordstname TEXT := tablename || '_' ||  columnname || '_bm25i_words' || algo;
    ```
  - The index creation is a costy operation, but required after every change in the corpus (the original texts in tablename->columnname).
- - ```algo``` values: ```''``` is BM25Okapi (default),  ```'l'``` is BM25L,   ```'plus'``` is BM25Plus. 
+ - ```algo``` values: ```''``` is BM25Okapi (default),  ```'l', 'plus', 'robertson', 'luceneaccurate', 'atire', 'bm25l', 'bm25plus'```.
+ - ```stopwordslanguage``` values: ```''``` is no stopword filtering (default), ```'en', 'fr', 'es', 'pt', 'it', 'de', 'nl', 'sv', 'no', 'nn', 'da', 'ru', 'fi', 'hu', 'ga', 'id'```
 
 
 ```plpgsql
-bm25topk(tablename TEXT, columnname TEXT, mquery TEXT, k INT, algo TEXT DEFAULT '') RETURNS TABLE(id INTEGER, score double precision, doc TEXT)
+bm25topk(tablename TEXT, columnname TEXT, mquery TEXT, k INT, algo TEXT DEFAULT '', stopwordslanguage TEXT DEFAULT '') RETURNS TABLE(id INTEGER, score double precision, doc TEXT)
 ```
  - This is the search function, which returns the top ```k``` documents and their scores that are most similar to ```mquery``` (the question).
  - WARNING: the ```id``` column in the result table must not be used, instead the ```doc``` must be matched with (tablename->columnname) in the original table to get the record / ordering. The ```id``` column and the ordering of ```doc```s in the result table is not guaranteed to be the same as the ordering as the ordering of records in the original table.
+
 
 ```plpgsql
 bm25simpletokenize(txt TEXT) RETURNS TEXT[]
 ```
  - The default tokenizer function. If you need another / custom tokenizer, then you need to overwrite this (DROP FUNCTION... CREATE OR REPLACE FUNCTION...).
+
+
+```plpgsql
+stopwordfilter(words TEXT[], language TEXT DEFAULT '') RETURNS TEXT[]
+```
+ - stopword filter
 
 ----
 ### What is this?
@@ -114,6 +132,10 @@ Postgres has already Full Text Search and there are several extensions that impl
 
    - NOTE: this is useful for fuzzy string matching, like spelling correction, but not query->document search solution itself.
 The differing document and query text lengths will result very small relative trigram frequencies and incorrect/missing matching.
+
+----
+### Contributions welcome!
+The author is not a Postgres / PL/pgSQL expert, gladly accepts optimizations or constructive criticism.
 
 ----
 ### Special thanks to: dorianbrown, Myon, depesz, sobel, ilmari, xiaomiao and others from #postgresql
