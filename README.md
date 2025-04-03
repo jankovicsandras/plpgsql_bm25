@@ -33,14 +33,14 @@ README.md
 
 BM25Okapi is the default algoritm. The ```algo``` parameter can select the following algorithms: ```'', 'l', 'plus', 'robertson', 'luceneaccurate', 'atire', 'bm25l', 'bm25plus'``` :
 ```plpgsql
-  SELECT bm25createindex( tablename, columnname, algo=>'luceneaccurate' );  /* tablename and columnname are TEXT types */
-  SELECT * FROM bm25topk( tablename, columnname, question, k, algo=>'luceneaccurate' ); /* question is TEXT, k is INTEGER */
+  SELECT bm25createindex( tablename, columnname, algo=>'luceneaccurate' );
+  SELECT * FROM bm25topk( tablename, columnname, question, k, algo=>'luceneaccurate' );
 ```
 
 Stopword filtering. The following [language tags](https://en.wikipedia.org/wiki/IETF_language_tag) can be selected: ```'' (no stopword filtering), 'en', 'fr', 'es', 'pt', 'it', 'de', 'nl', 'sv', 'no', 'nn', 'da', 'ru', 'fi', 'hu', 'ga', 'id'```
 ```plpgsql
-  SELECT bm25createindex( tablename, columnname, algo=>'plus', stopwordslanguage=>'hu' );  /* tablename and columnname are TEXT types */
-  SELECT * FROM bm25topk( tablename, columnname, question, k, algo=>'plus', stopwordslanguage=>'hu' ); /* question is TEXT, k is INTEGER, algo is TEXT, stopwordslanguage is TEXT */
+  SELECT bm25createindex( tablename, columnname, algo=>'plus', stopwordslanguage=>'hu' );
+  SELECT * FROM bm25topk( tablename, columnname, question, k, algo=>'plus', stopwordslanguage=>'hu' );
 ```
 
 Empirical results show that ```algo=>'luceneaccurate'``` and active stopword filtering (e.g. ```stopwordslanguage=>'en'```) usually lead to better results.
@@ -50,7 +50,7 @@ Calling these from Python with a simple psycopg2 helper:
 # it is assumed that 'mytable' exists in the Postgres DB and has a 'mycolumn' (type TEXT)
 tablename = 'mytable'
 columnname = 'mycolumn'
-p_algo = 'luceneaccurate' # BM25L algoritm
+p_algo = 'luceneaccurate'
 stopwords_lang = 'en'
 k = 5 # top k results
 q = 'this is my question'
