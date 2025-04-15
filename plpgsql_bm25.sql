@@ -429,7 +429,7 @@ DECLARE
 BEGIN
   EXECUTE FORMAT( 'DROP TABLE IF EXISTS %s;', xdocstname );
   EXECUTE FORMAT( 'CREATE TABLE %s AS SELECT bm25scorerows(%s, %s, %s);', xdocstname, quote_literal(tablename), quote_literal(mquery), quote_literal(stopwordslanguage) );
-  RETURN QUERY EXECUTE FORMAT( 'SELECT ARRAY_AGG(sum ORDER BY ord) FROM (SELECT ord, SUM(int) FROM %s, unnest(bm25scorerows) WITH ORDINALITY u(int, ord) GROUP BY ord);', xdocstname );
+  RETURN QUERY EXECUTE FORMAT( 'SELECT ARRAY_AGG(sum ORDER BY ord) FROM (SELECT ord, SUM(int) FROM %s, unnest(bm25scorerows) WITH ORDINALITY u(int, ord) GROUP BY ord) AS subquery;', xdocstname ); /* Issue #4 fix: AS subquery */
 END;
 $$;
 
