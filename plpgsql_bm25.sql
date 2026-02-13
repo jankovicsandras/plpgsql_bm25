@@ -110,10 +110,12 @@ BEGIN
   END CASE;
 
   words2 = '{}';
-  FOREACH w IN ARRAY words LOOP
-    w2 = RTRIM( LTRIM( LOWER(w) ) );
-    IF (SELECT NOT w2 = ANY(stopwords)) THEN words2 = array_append( words2, w2 ); END IF;
-  END LOOP;
+  IF words IS NOT NULL THEN
+      FOREACH w IN ARRAY words LOOP
+        w2 = RTRIM( LTRIM( LOWER(w) ) );
+        IF (SELECT NOT w2 = ANY(stopwords)) THEN words2 = array_append( words2, w2 ); END IF;
+      END LOOP;
+  END IF;
 
   RETURN words2;
 
