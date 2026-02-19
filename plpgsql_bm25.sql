@@ -421,7 +421,7 @@ END;
 $$;
 
 
-/* bm25scoressum(): sums the score rows to one array with the document scores ; TODO: instead of xdocstname maybe with temp table, race condition here? */
+/* bm25scoressum(): sums the score rows to one array with the document scores ; TODO: test whether temp table fixes race condition here */
 DROP FUNCTION IF EXISTS bm25scoressum;
 CREATE OR REPLACE FUNCTION bm25scoressum(tablename TEXT, mquery TEXT, stopwordslanguage TEXT DEFAULT '') RETURNS SETOF double precision[]
 LANGUAGE plpgsql
@@ -430,7 +430,7 @@ DECLARE
   xdocstname TEXT := tablename || '_bm25i_temp';
 BEGIN
   EXECUTE FORMAT( 'DROP TABLE IF EXISTS %s;', xdocstname );
-  EXECUTE FORMAT( 'CREATE TABLE %s AS SELECT bm25scorerows(%s, %s, %s);', xdocstname, quote_literal(tablename), quote_literal(mquery), quote_literal(stopwordslanguage) );
+  EXECUTE FORMAT( 'CREATE TEMPORARY TABLE %s AS SELECT bm25scorerows(%s, %s, %s);', xdocstname, quote_literal(tablename), quote_literal(mquery), quote_literal(stopwordslanguage) );
   RETURN QUERY EXECUTE FORMAT( 'SELECT ARRAY_AGG(sum ORDER BY ord) FROM (SELECT ord, SUM(int) FROM %s, unnest(bm25scorerows) WITH ORDINALITY u(int, ord) GROUP BY ord) AS subquery;', xdocstname ); /* Issue #4 fix: AS subquery */
 END;
 $$;
