@@ -412,12 +412,12 @@ $$;
 /* bm25scorerows() get the documentscores row for each word */
 DROP FUNCTION IF EXISTS bm25scorerows;
 CREATE OR REPLACE FUNCTION bm25scorerows(tablename TEXT, mquery TEXT, stopwordslanguage TEXT DEFAULT '') RETURNS SETOF double precision[]
-    LANGUAGE plpgsql
-    STABLE
-    PARALLEL SAFE
+  LANGUAGE plpgsql
+  STABLE
+  PARALLEL SAFE
 AS $$
 BEGIN
-    RETURN QUERY EXECUTE FORMAT('SELECT wsmap FROM %s w INNER JOIN unnest(stopwordfilter(bm25simpletokenize(%s), %s) n ON w.word = n.n;', tablename, quote_literal(mquery), stopwordslanguage);
+  RETURN QUERY EXECUTE FORMAT('SELECT wsmap FROM %s w INNER JOIN unnest(stopwordfilter(bm25simpletokenize(%s), %s) n ON w.word = n.n;', tablename, quote_literal(mquery), stopwordslanguage);
 END;
 $$;
 
@@ -429,47 +429,47 @@ LANGUAGE sql
 PARALLEL SAFE
 STABLE
 BEGIN ATOMIC
-    SELECT ARRAY_AGG(sum ORDER BY ord)
-    FROM (SELECT ord, SUM(int)
-          FROM (SELECT b.b
-                FROM bm25scorerows(tablename, quote_literal(mquery), quote_literal(stopwordslanguage)) b) t, unnest(t.b) WITH ORDINALITY u(int, ord)
-          GROUP BY ord) AS subquery;
+  SELECT ARRAY_AGG(sum ORDER BY ord)
+  FROM (SELECT ord, SUM(int)
+        FROM (SELECT b.b
+              FROM bm25scorerows(tablename, quote_literal(mquery), quote_literal(stopwordslanguage)) b) t, unnest(t.b) WITH ORDINALITY u(int, ord)
+        GROUP BY ord) AS subquery;
 END;
 
 
 /* bm25scunnest(): unnests the score array */
 DROP FUNCTION IF EXISTS bm25scunnest;
 CREATE OR REPLACE FUNCTION bm25scunnest(tablename TEXT, mquery TEXT, stopwordslanguage TEXT DEFAULT '') RETURNS TABLE(score double precision)
-    LANGUAGE sql
-    PARALLEL SAFE
-    STABLE
+  LANGUAGE sql
+  PARALLEL SAFE
+  STABLE
 BEGIN ATOMIC
-    SELECT unnest( bm25scoressum( tablename, mquery, stopwordslanguage ) );
+  SELECT unnest( bm25scoressum( tablename, mquery, stopwordslanguage ) );
 END;
 
 
 /* bm25isc(): returns the index and score of the documents; index starts with 1 */
 DROP FUNCTION IF EXISTS bm25isc;
 CREATE OR REPLACE FUNCTION bm25isc(tablename TEXT, mquery TEXT, stopwordslanguage TEXT DEFAULT '') RETURNS TABLE(id BIGINT, score double precision)
-    LANGUAGE sql
-    PARALLEL SAFE
-    STABLE
+  LANGUAGE sql
+  PARALLEL SAFE
+  STABLE
 BEGIN ATOMIC
-    SELECT row_number() OVER () AS id, bm25scunnest FROM bm25scunnest( tablename, mquery, stopwordslanguage ) ;
+  SELECT row_number() OVER () AS id, bm25scunnest FROM bm25scunnest( tablename, mquery, stopwordslanguage ) ;
 END;
 
 
 /* bm25topk(): returns the index, score and document sorted and limited |  TABLE(id INT, id2 BIGINT, score double precision, doc TEXT) */
 DROP FUNCTION IF EXISTS bm25topk;
 CREATE OR REPLACE FUNCTION bm25topk(tablename TEXT, columnname TEXT, mquery TEXT, k INT, algo TEXT DEFAULT '', stopwordslanguage TEXT DEFAULT '') RETURNS TABLE(id INTEGER, score double precision, doc TEXT)
-    LANGUAGE plpgsql
-    PARALLEL SAFE
-    STABLE
+  LANGUAGE plpgsql
+  PARALLEL SAFE
+  STABLE
 AS $$
 DECLARE
-    docstname TEXT := tablename || '_' ||  columnname || '_bm25i_docs' || algo;
-    wordstname TEXT := tablename || '_' ||  columnname || '_bm25i_words' || algo;
+  docstname TEXT := tablename || '_' ||  columnname || '_bm25i_docs' || algo;
+  wordstname TEXT := tablename || '_' ||  columnname || '_bm25i_words' || algo;
 BEGIN
-    RETURN QUERY EXECUTE FORMAT( 'SELECT t1.id, t2.score, t1.d AS doc FROM (SELECT id, doc AS d FROM %s) t1 INNER JOIN ( SELECT id, score FROM bm25isc_alt(%s,%s,%s) ) t2 ON ( t1.id = t2.id ) ORDER BY t2.score DESC LIMIT %s;', docstname, quote_literal(wordstname), quote_literal(mquery), quote_literal(stopwordslanguage), k );
+  RETURN QUERY EXECUTE FORMAT( 'SELECT t1.id, t2.score, t1.d AS doc FROM (SELECT id, doc AS d FROM %s) t1 INNER JOIN ( SELECT id, score FROM bm25isc_alt(%s,%s,%s) ) t2 ON ( t1.id = t2.id ) ORDER BY t2.score DESC LIMIT %s;', docstname, quote_literal(wordstname), quote_literal(mquery), quote_literal(stopwordslanguage), k );
 END;
 $$;
