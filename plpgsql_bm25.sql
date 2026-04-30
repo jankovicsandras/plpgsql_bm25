@@ -470,6 +470,6 @@ DECLARE
   docstname TEXT := tablename || '_' ||  columnname || '_bm25i_docs' || algo;
   wordstname TEXT := tablename || '_' ||  columnname || '_bm25i_words' || algo;
 BEGIN
-  RETURN QUERY EXECUTE FORMAT( 'SELECT t1.id, t2.score, t1.d AS doc FROM (SELECT id, doc AS d FROM %s) t1 INNER JOIN ( SELECT id, score FROM bm25isc_alt(%s,%s,%s) ) t2 ON ( t1.id = t2.id ) ORDER BY t2.score DESC LIMIT %s;', docstname, quote_literal(wordstname), quote_literal(mquery), quote_literal(stopwordslanguage), k );
+  RETURN QUERY EXECUTE FORMAT( 'SELECT t1.id, t2.score, t1.d AS doc FROM (SELECT id, doc AS d FROM %s) t1 INNER JOIN ( SELECT id, score FROM bm25isc(%s,%s,%s) ) t2 ON ( t1.id = t2.id ) ORDER BY t2.score DESC LIMIT %s;', docstname, quote_literal(wordstname), quote_literal(mquery), quote_literal(stopwordslanguage), k );
 END;
 $$;
