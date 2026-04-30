@@ -417,7 +417,7 @@ CREATE OR REPLACE FUNCTION bm25scorerows(tablename TEXT, mquery TEXT, stopwordsl
   PARALLEL SAFE
 AS $$
 BEGIN
-  RETURN QUERY EXECUTE FORMAT('SELECT wsmap FROM %s w INNER JOIN unnest(stopwordfilter(bm25simpletokenize(%s), %s) n ON w.word = n.n;', tablename, quote_literal(mquery), stopwordslanguage);
+  RETURN QUERY EXECUTE FORMAT('SELECT wsmap FROM %s w INNER JOIN unnest(stopwordfilter(bm25simpletokenize(%s), %s)) n ON w.word = n.n;', tablename, quote_literal(mquery), stopwordslanguage);
 END;
 $$;
 
