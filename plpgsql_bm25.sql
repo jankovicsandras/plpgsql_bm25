@@ -150,23 +150,21 @@ $$;
 
 /* count_words_in_array() creates doc->words counts */
 DROP FUNCTION IF EXISTS count_words_in_array;
-CREATE OR REPLACE FUNCTION count_words_in_array(input_array text[]) RETURNS jsonb
-LANGUAGE plpgsql
-AS $$
-DECLARE
-    word_count jsonb := '{}';
-    current_word text;
-BEGIN
-    FOREACH current_word IN ARRAY input_array LOOP
-        IF word_count->>current_word IS NULL THEN
-            word_count := jsonb_set( word_count, ARRAY[current_word], '1'::jsonb, true );
-        ELSE
-            word_count := jsonb_set( word_count, ARRAY[current_word], ((word_count->>current_word)::int + 1)::text::jsonb );
-        END IF;
-    END LOOP;
-    RETURN word_count;
+CREATE OR REPLACE FUNCTION count_words_in_array(text[]) RETURNS jsonb
+LANGUAGE SQL
+IMMUTABLE PARALLEL SAFE
+BEGIN ATOMIC
+    SELECT json_object_agg(r.ref,r.num)::jsonb result
+    FROM (
+      SELECT
+        ref,
+        count(a) AS num
+      FROM unnest((SELECT array_agg(DISTINCT x) FROM unnest($1) ref(x))) ref
+        LEFT JOIN unnest($1) a ON (ref = a)
+      GROUP BY ref
+      ORDER BY ref
+    ) r;
 END;
-$$;
 
 
 /* get_word_docs_count() */
