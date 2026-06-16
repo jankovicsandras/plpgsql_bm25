@@ -3,8 +3,8 @@
 
   plpgsql_bm25.sql
   BM25 search implemented in PL/pgSQL
-  version 1.1.2 by András Jankovics and contributors  https://github.com/jankovicsandras  andras@jankovics.net
-  2026-05-11
+  version 1.1.3 by András Jankovics and contributors  https://github.com/jankovicsandras  andras@jankovics.net
+  2026-06-16
 
   Example usage:
   SELECT bm25createindex( tablename, columnname );  -- tablename and columnname are TEXT types
